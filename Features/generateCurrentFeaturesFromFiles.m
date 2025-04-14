@@ -139,6 +139,8 @@ featureTables.DeltaRMS_B = deltaRMS_B;
 
 % Pass Feature Names into return variable
 featureNames = featureTables.Properties.VariableNames;
+% Exclude Debug Variables
+featureNames(1:3) = [];
 end
 
 function [M2_A, M2_B] = computeHealthyResidualVariance(files, windowDuration, overlapPercent)
