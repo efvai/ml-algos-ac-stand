@@ -46,16 +46,19 @@ function dataTable = collectMetadata(rootDir)
 
                     if contains(fileName, 'LTR11')
                         signalType = 'Current';
+                        Fs = 10000;
                     elseif contains(fileName, 'LTR22')
                         signalType = 'Vibration';
+                        Fs = 26041;
                     else
                         signalType = 'Unknown';
+                        Fs = NaN;
                     end
 
                     newRow = table({filePath}, {fileName}, {faultLabel}, ...
-                        {configLabel}, {frequency}, {expLabel}, {signalType}, ...
+                        {configLabel}, {frequency}, {expLabel}, {signalType}, Fs, ...
                         'VariableNames', {'FilePath', 'FileName', 'Fault', ...
-                        'Config', 'Frequency', 'Experiment', 'SignalType'});
+                        'Config', 'Frequency', 'Experiment', 'SignalType', 'Fs'});
 
                     dataTable = [dataTable; newRow];
                 end
