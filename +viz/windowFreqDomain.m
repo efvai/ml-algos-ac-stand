@@ -1,15 +1,29 @@
-function fig = windowFreqDomain(row)
-    % Extract signal and sampling rate
-    % Extract current features
-    if ismember('currents', row.Properties.VariableNames)
-        sig = row.currents{1};   % [N x C]
+function fig = windowFreqDomain(row, signalType)
+    % windowFreqDomain Visualize the frequency domain of a signal
+    %   fig = windowFreqDomain(row, signalType)
+    %   - row: table row containing 'currents' or 'vibro' as cell array fields
+    %   - signalType: 'currents' or 'vibro' (optional, defaults to 'currents')
+
+    % Set default signal type if not provided
+    if nargin < 2 || isempty(signalType)
+        signalType = 'currents';
+        disp('No signal type provided. Defaulting to ''currents''.');
     end
 
-    % Extract vibration features
-    if ismember('vibro', row.Properties.VariableNames)
-        sig = row.vibro{1};   % [N x C]
+    % Validate signalType input
+    if ~ismember(signalType, {'currents', 'vibro'})
+        error('Invalid signal type. Choose either ''currents'' or ''vibro''.');
     end
-    Fs = row.meta.Fs;        % Scalar
+
+    % Check if the selected signal exists in the table
+    if ismember(signalType, row.Properties.VariableNames)
+        sig = row.(signalType){1};  % [N x C]
+    else
+        error('The selected signal type "%s" is not present in the input row.', signalType);
+    end
+
+    % Extract sampling rate from meta
+    Fs = row.meta.Fs;  % Scalar
     [N, C] = size(sig);
 
     % Frequency vector (one-sided)
@@ -29,5 +43,5 @@ function fig = windowFreqDomain(row)
         grid on;
     end
 
-    sgtitle('Frequency Domain Signal');
+    sgtitle(['Frequency Domain - ', signalType]);
 end
