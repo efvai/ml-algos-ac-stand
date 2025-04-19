@@ -1,15 +1,13 @@
-function [data, timeVector] = readBinarySignal(filePath, numChannels, samplingRate)
+function data = readRaw(filePath, numChannels)
 % readBinarySignal Reads interleaved multi-channel ADC data from binary file
-%   [data, timeVector] = readBinarySignal(filePath, numChannels, samplingRate)
+%   data = readBinarySignal(filePath, numChannels)
 %
 %   Inputs:
 %       - filePath: path to the binary file
 %       - numChannels: number of channels in the file (e.g. 2 or 4)
-%       - samplingRate: sampling rate in Hz (e.g. 10000 or 26041)
 %
 %   Outputs:
 %       - data: [channels x samples] matrix of raw data
-%       - timeVector: corresponding time vector in seconds
 
     % === Open and Read File ===
     fileId = fopen(filePath, 'rb');
@@ -26,7 +24,4 @@ function [data, timeVector] = readBinarySignal(filePath, numChannels, samplingRa
     % Reshape to [samples x channels]
     data = reshape(rawData, [numChannels, totalSamples])';
     %                                                   ^ transpose to [samples x channels]
-
-    % === Time Vector ===
-    timeVector = linspace(0, totalSamples / samplingRate, totalSamples);
 end

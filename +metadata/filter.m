@@ -1,7 +1,7 @@
-function selectedFiles = selectFiles(metadataTable, faultValues, configValues, frequencyValues, signalTypeValues)
-%SELECTFILES Flexible filtering of metadata table by multiple optional fields.
+function metadataSubset = filter(metadataTable, faultValues, configValues, frequencyValues, signalTypeValues)
+%FILTERMETADATA Flexible filtering of metadata table by multiple optional fields.
 %
-%   selectedFiles = selectFiles(metadataTable, faultValues, configValues, frequencyValues, signalTypeValues)
+%   metadataSubset = filterMetadata(metadataTable, faultValues, configValues, frequencyValues, signalTypeValues)
 %
 %   All filter values can be:
 %     - a string (e.g., 'HH')
@@ -16,7 +16,7 @@ function selectedFiles = selectFiles(metadataTable, faultValues, configValues, f
 %       signalTypeValues   - Desired SignalType(s) (e.g., 'Current' or {'Current','Vibration'})
 %
 %   Output:
-%       selectedFiles      - Filtered table of matching rows
+%       metadataSubset      - Filtered table of matching rows
 
     % Start with all rows included
     matchedRows = true(height(metadataTable), 1);
@@ -52,6 +52,6 @@ function selectedFiles = selectFiles(metadataTable, faultValues, configValues, f
     end
 
     % Return filtered table
-    selectedFiles = metadataTable(matchedRows, :);
+    metadataSubset = metadataTable(matchedRows, :);
 end
 

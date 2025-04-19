@@ -1,4 +1,4 @@
-function dataTable = collectMetadata(rootDir)
+function dataTable = collect(rootDir)
     dataTable = [];
 
     faultTypes = dir(rootDir);
