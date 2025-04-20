@@ -42,11 +42,12 @@ function features = extractBasic(signal, Fs)
     crestFactor = max(abs(signal)) / max(rmsVal, eps);
 
     % --- Frequency-Domain Features ---
-    N = length(signal);
     Y = fft(signal);
-    P2 = abs(Y / N);
-    P1 = P2(1:floor(N/2) + 1);
-    fVec = Fs * (0:(length(P1)-1)) / N;
+    N = length(signal);
+    P2 = abs(Y/N);
+    P1 = P2(1:N/2+1);
+    P1(2:end-1) = 2*P1(2:end-1); 
+    fVec = Fs * (0:(N/2)) / N;
 
     % Dominant frequency
     [~, idx] = max(P1);
