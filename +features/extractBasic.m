@@ -45,7 +45,7 @@ function features = extractBasic(signal, Fs)
     Y = fft(signal);
     N = length(signal);
     P2 = abs(Y/N);
-    P1 = P2(1:N/2+1);
+    P1 = P2(1:floor(N/2)+1);
     P1(2:end-1) = 2*P1(2:end-1); 
     fVec = Fs * (0:(N/2)) / N;
 
