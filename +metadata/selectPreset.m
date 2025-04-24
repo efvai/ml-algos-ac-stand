@@ -97,6 +97,10 @@ function metadataSubset = selectPreset(dataTable, datasetName)
             d14 = metadata.selectPreset(dataTable, 'dataset14');
             metadataSubset = [d11; d12; d13; d14];
 
+        case 'dataset16'
+            d1 = metadata.selectPreset(dataTable, 'dataset1');
+            d11 = metadata.selectPreset(dataTable, 'dataset11');
+            metadataSubset = [d1; d11];
 
         otherwise
             error("Unknown dataset name: '%s'", datasetName);
