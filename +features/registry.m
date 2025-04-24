@@ -1,53 +1,121 @@
 function names = registry(signalType)
-%FEATURES.REGISTRY Returns list of feature names by signal type
+%FEATURES.REGISTRY Returns list of feature names by signal type or options
 %
 %   names = features.registry(signalType)
+%   names = features.registry(regOptionsStruct)
 %
 %   INPUT:
-%       signalType - 'currents', 'vibro', or 'all' (optional)
+%       signalType - string (legacy) OR struct with flags
 %
 %   OUTPUT:
 %       names - Cell array of feature names
 
     if nargin < 1
-        signalType = 'all';
+        signalType = struct();  % Default to empty struct → all false
     end
 
-    % Define current features
-    currentNames = {
-        'Mean_A', 'Mean_B', ...
-        'Std_A', 'Std_B', ...
-        'RMS_A', 'RMS_B', ...
-        'Skew_A', 'Skew_B', ...
-        'Kurt_A', 'Kurt_B', ...
-        'PTP_A', 'PTP_B', ...
-        'Crest_A', 'Crest_B', ...
-        'DominantFreq_A', 'DominantFreq_B', ...
-        'SpecEnergy_A', 'SpecEnergy_B', ...
-        'Centroid_A', 'Centroid_B', ...
-        'Entropy_A', 'Entropy_B', ...
-        'Corr_AB', 'RMS_VectorMag'
-    };
+    %% === Define Feature Name Templates ===
 
-    % Define vibration features (4 channels × 11 features)
-    labels = {'Ch1', 'Ch2', 'Ch3', 'Ch4'};
-    baseNames = {'Mean','Std','RMS','Skew','Kurt','PTP','Crest', ...
-                 'DominantFreq','SpecEnergy','Centroid','Entropy'};
+    timeFeatures = {'Mean','Std','RMS','Skew','Kurt','PTP','Crest'};
+    freqFeatures = {'DominantFreq','SpecEnergy','Centroid','Entropy'};
 
-    vibroNames = {};
-    for i = 1:numel(baseNames)
-        for ch = 1:4
-            vibroNames{end+1} = [baseNames{i}, '_', labels{ch}]; %#ok<AGROW>
+    %% === Handle struct input (preferred new style) ===
+    if isstruct(signalType)
+        opt = signalType;
+
+        % === All options default to false ===
+        defaultFlags = struct( ...
+            'phaseA', false, ...
+            'phaseB', false, ...
+            'timeDomain', false, ...
+            'freqDomain', false, ...
+            'crossPhase', false, ...
+            'park', false, ...
+            'vibroChannels', [] ...
+        );
+
+        % Merge user options (opt) with defaults
+        flags = defaultFlags;
+        userFields = fieldnames(opt);
+        for i = 1:numel(userFields)
+            flags.(userFields{i}) = opt.(userFields{i});
         end
+
+        names = {};
+
+        %% === Currents: Phase A/B Time/Freq ===
+        if flags.timeDomain
+            for i = 1:numel(timeFeatures)
+                if flags.phaseA
+                    names{end+1} = [timeFeatures{i}, '_A'];
+                end
+                if flags.phaseB
+                    names{end+1} = [timeFeatures{i}, '_B'];
+                end
+            end
+        end
+
+        if flags.freqDomain
+            for i = 1:numel(freqFeatures)
+                if flags.phaseA
+                    names{end+1} = [freqFeatures{i}, '_A'];
+                end
+                if flags.phaseB
+                    names{end+1} = [freqFeatures{i}, '_B'];
+                end
+            end
+        end
+
+        if flags.crossPhase
+            names{end+1} = 'Corr_AB';
+            names{end+1} = 'RMS_VectorMag';
+        end
+
+        %% === Park Features ===
+        if flags.park
+            parkFields = {
+                'Mean_P','Std_P','RMS_P','Skew_P','Kurt_P','PTP_P','Crest_P', ...
+                'DominantFreq_P','SpecEnergy_P','Centroid_P','Entropy_P', ...
+                'Ellipse_A', 'Ellipse_B', 'Ellipse_Ratio', 'Ellipse_Ecc', ...
+                'Ellipse_PhiDeg', 'Ellipse_Offset'
+            };
+            names = [names, parkFields];
+        end
+
+        %% === Vibro Features ===
+        vibroBase = [timeFeatures, freqFeatures];
+        for i = 1:numel(vibroBase)
+            for ch = flags.vibroChannels
+                names{end+1} = sprintf('%s_Ch%d', vibroBase{i}, ch);
+            end
+        end
+
+        return;  % Done with struct input
     end
 
+    %% === Legacy string-based behavior ===
     switch lower(signalType)
         case 'currents'
-            names = currentNames;
+            names = features.registry(struct( ...
+                'phaseA', true, ...
+                'phaseB', true, ...
+                'timeDomain', true, ...
+                'freqDomain', true, ...
+                'crossPhase', true, ...
+                'park', true ...
+            ));
         case 'vibro'
-            names = vibroNames;
+            names = features.registry(struct('vibroChannels', 1:4));
         case 'all'
-            names = [currentNames, vibroNames];
+            names = features.registry(struct( ...
+                'phaseA', true, ...
+                'phaseB', true, ...
+                'timeDomain', true, ...
+                'freqDomain', true, ...
+                'crossPhase', true, ...
+                'park', true, ...
+                'vibroChannels', 1:4 ...
+            ));
         otherwise
             error('Unknown signal type: %s', signalType);
     end

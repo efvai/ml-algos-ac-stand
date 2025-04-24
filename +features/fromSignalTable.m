@@ -26,7 +26,8 @@ function [X, Y, featureTbl, featureNames] = fromSignalTable(signalTable)
         % Extract current features
         if isfield(row, 'currents') || ismember('currents', signalTable.Properties.VariableNames)
             fCurrent = features.extractCurrent(row.currents{1}, Fs);  % assuming cell array in table
-            feats = [feats, fCurrent];
+            fPark = features.extractPark(row.currents{1}, Fs);
+            feats = [feats, fCurrent, fPark];
         end
 
         % Extract vibration features

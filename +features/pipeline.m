@@ -42,6 +42,10 @@ function [X, Y, featureTbl, featureNames] = pipeline(files, options)
         options.exclude = {};  % no excluded features
     end
 
+    if ~isfield(options, 'include')
+        options.include = {};  % allow full set by default
+    end
+
     % === Build signal table ===
     sigTable = preprocess.buildSignalTable( ...
         files, ...
@@ -54,6 +58,12 @@ function [X, Y, featureTbl, featureNames] = pipeline(files, options)
     % === Extract features ===
     [X, Y, featureTbl, featureNames] = features.fromSignalTable(sigTable);
 
-    % === Optionally exclude features ===
+    % === Filter features ===
+    if ~isempty(options.include)
+        % Filter to ONLY included features
+        [X, featureNames] = features.keepOnly(X, featureNames, options.include);
+    end
+    % Remove excluded features
     [X, featureNames] = features.exclude(X, featureNames, options.exclude);
+    
 end
