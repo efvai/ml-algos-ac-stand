@@ -7,6 +7,7 @@ function [X, Y, featureTbl, featureNames] = fromSignalTable(signalTable)
 %           .currents - Nx2 matrix (optional)
 %           .vibro    - Nx1 vector (optional)
 %           .label    - scalar/class label
+%           .metaCurrent / .metaVibro
 %
 %   OUTPUTS:
 %       X           - Feature matrix [nSamples x nFeatures]
@@ -15,48 +16,60 @@ function [X, Y, featureTbl, featureNames] = fromSignalTable(signalTable)
 %       featureNames- Cell array of feature names
 
     nSamples = height(signalTable);
-    allFeatures = {};
-    labels = cell(nSamples, 1);
+    allFeatures = cell(nSamples, 1);
+    labels = strings(nSamples, 1);  % use strings for categorical conversion later
+
+    useCurrent = ismember('currents', signalTable.Properties.VariableNames);
+    useVibro = ismember('vibro', signalTable.Properties.VariableNames);
 
     for i = 1:nSamples
         row = signalTable(i,:);
-        Fs = row.meta.Fs;
         feats = [];
 
         % Extract current features
-        if isfield(row, 'currents') || ismember('currents', signalTable.Properties.VariableNames)
-            fCurrent = features.extractCurrent(row.currents{1}, Fs);  % assuming cell array in table
-            fPark = features.extractPark(row.currents{1}, Fs);
+        if useCurrent && ~isempty(row.currents{1})
+            FsCurr = row.metaCurrent.Fs;
+            fCurrent = features.extractCurrent(row.currents{1}, FsCurr);  % assuming cell
+            fPark = features.extractPark(row.currents{1}, FsCurr);
             feats = [feats, fCurrent, fPark];
         end
 
         % Extract vibration features
-        if isfield(row, 'vibro') || ismember('vibro', signalTable.Properties.VariableNames)
-            fVibro = features.extractVibration(row.vibro{1}, Fs);
+        if useVibro && ~isempty(row.vibro{1})
+            FsVibro = row.metaVibro.Fs;
+            fVibro = features.extractVibration(row.vibro{1}, FsVibro);
             feats = [feats, fVibro];
         end
 
         allFeatures{i,1} = feats;
-        labels{i,1} = row.label;
+        labels(i) = string(row.label);
     end
 
-    % Convert cell array to matrix
+    % Convert to matrix
     X = cell2mat(allFeatures);
 
-    % Determine which feature names to use based on input table
-    useVibro = ismember('vibro', signalTable.Properties.VariableNames);
+    % Determine combined feature names
+    featureNames = {};
+    if useCurrent
+        featureNames = [featureNames, features.registry('currents')];
+    end
     if useVibro
-        featureNames = features.registry('vibro');
-    else
-        featureNames = features.registry('currents');
+        featureNames = [featureNames, features.registry('vibro')];
     end
 
     % Feature table
     featureTbl = array2table(X, 'VariableNames', featureNames);
-    featureTbl.label = signalTable.label;
-    featureTbl.meta = signalTable.meta;
+    featureTbl.label = categorical(labels);
+
+    % Optional: attach original metadata
+    if ismember('metaCurrent', signalTable.Properties.VariableNames)
+        featureTbl.metaCurrent = signalTable.metaCurrent;
+    end
+    if ismember('metaVibro', signalTable.Properties.VariableNames)
+        featureTbl.metaVibro = signalTable.metaVibro;
+    end
     featureTbl.timeInterval = signalTable.timeInterval;
 
     % Output labels
-    Y = categorical(string(labels));
+    Y = categorical(labels);
 end

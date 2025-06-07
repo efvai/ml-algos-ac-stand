@@ -46,7 +46,7 @@ function fig = windowTimeDomain(row, opts)
         FsVec = zeros(height(row),1);
         for i = 1:height(row)
             sigCells{i} = row.(opts.signalType){i};
-            FsVec(i) = row.meta(i, :).Fs;
+            FsVec(i) = row.metaVibro(i, :).Fs;
         end
         if any(FsVec ~= FsVec(1))
             error('Sampling rates differ between rows!');
@@ -69,7 +69,7 @@ function fig = windowTimeDomain(row, opts)
     else
         % Extract signal and sampling rate, single row
         sig = row.(opts.signalType){1};  % [N x C]
-        Fs = row.meta.Fs;
+        Fs = row.metaCurrent.Fs;
         [N, C] = size(sig);
         t = (0:N-1) / Fs;
     end
@@ -84,9 +84,9 @@ function fig = windowTimeDomain(row, opts)
     for ch = 1:C
         nexttile;
         plot(t, sig(:, ch), 'LineWidth', 1.2);
-        xlabel('Time (s)', 'FontWeight', 'bold');
-        ylabel('Amplitude', 'FontWeight', 'bold');
-        title(['Channel ', num2str(ch)], 'FontWeight', 'bold');
+        xlabel('Время, с', 'FontWeight', 'bold');
+        ylabel('Виброускорение, мм/c^2', 'FontWeight', 'bold');
+        title(['Канал ', num2str(ch)], 'FontWeight', 'bold');
         grid on;
 
         % Apply axis limits if provided

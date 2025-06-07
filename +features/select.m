@@ -6,7 +6,7 @@ function subTbl = select(featureTbl, varargin)
 %
 % This will return rows of featureTbl where featureTbl.meta.Fault matches either value.
 
-    meta = featureTbl.meta;  % Extract meta table
+    meta = featureTbl.metaCurrent;  % Extract meta table
 
     if mod(length(varargin),2) ~= 0
         error('Filters must be specified as name-value pairs.');

@@ -1,69 +1,111 @@
 function signalTable = buildSignalTable(metadataTable, windowDuration, overlapPercent, readFnCurrents, readFnVibro)
 %BUILDSIGNALTABLE Creates a table of windowed signal data from metadata table.
 %
-%   signalTable = buildSignalTable(metadataTable, windowDuration, overlapPercent, readFnCurrents, readFnVibro)
-%
-%   INPUTS:
-%       metadataTable   - Table with at least the following columns:
-%                         .FilePath (string or char), .Fault (label), .Fs (sampling rate)
-%       windowDuration  - Duration of each window in seconds
-%       overlapPercent  - Overlap between windows (0–100)
-%       readFnCurrents  - Function handle to read current from file path (e.g., @io.readCurrent)
-%       readFnVibro     - Function handle to read vibration signal
-%
 %   OUTPUT:
-%       signalTable     - Table with columns:
-%                         .currents (Nx2), .vibro (Nx1, optional),
-%                         .label (same as Fault), .meta, .timeInterval
+%       signalTable - Table with columns:
+%           .currents, .vibro, .label, .metaCurrent, .metaVibro, .timeInterval
+%
+%   INPUT:
+%       addSynthData - if true, generate synthetic 'WindingsShort' from 'healthy' current
 
-    allEntries = [];
+allEntries = [];
 
-    for i = 1:height(metadataTable)
-        rowMeta = metadataTable(i, :);
+% Ensure string type for grouping fields
+metadataTable.Experiment = string(metadataTable.Experiment);
+metadataTable.Fault = string(metadataTable.Fault);
+metadataTable.Config = string(metadataTable.Config);
 
-        % Load data using provided functions
-        dataPath = rowMeta.FilePath{1};  % Assuming FilePath is a cellstr or string
+% Create composite group key: Experiment + Fault + Config
+groupKeys = metadataTable.Experiment + "_" + metadataTable.Fault + "_" + metadataTable.Config;
+uniqueGroups = unique(groupKeys);
 
-        signalType = string(rowMeta.SignalType);
+for g = 1:numel(uniqueGroups)
+    groupName = uniqueGroups(g);
+    groupRows = metadataTable(groupKeys == groupName, :);
+
+    % Initialize
+    currentData = [];
+    vibroData = [];
+    metaCurrent = [];
+    metaVibro = [];
+
+    % Load signals by type
+    for i = 1:height(groupRows)
+        row = groupRows(i, :);
+        dataPath = row.FilePath;
+        signalType = string(row.SignalType);
+
         switch signalType
             case "Current"
-                signalData = readFnCurrents(dataPath);  % Nx2
-                isCurrent = true;
+                currentData = readFnCurrents(dataPath);
+                metaCurrent = row;
 
             case "Vibration"
-                signalData = readFnVibro(dataPath);     % Nx4
-                isCurrent = false;
+                vibroData = readFnVibro(dataPath);
+                metaVibro = row;
 
             otherwise
-                error("Unknown SignalType: %s", signalType);
-        end
-
-        % Sampling frequency from table
-        Fs = rowMeta.Fs;
-
-        % Windowing
-        [signalWindows, timeIntervals] = preprocess.windows(signalData, Fs, windowDuration, overlapPercent);
-
-        % Label from table
-        label = rowMeta.Fault;
-
-        % Create one row per window
-        for w = 1:numel(signalWindows)
-            entry = struct();
-            % Remove outliers (TEMP LOCATED HERE)
-            %currentWindows(w) = filloutliers(currentWindows(w), "linear", "movmedian", 400);
-            if isCurrent
-                entry.currents = signalWindows(w);
-            else
-                entry.vibro = signalWindows(w);
-            end
-            entry.label = string(label);
-            entry.timeInterval = timeIntervals(w, :);
-            entry.meta = rowMeta;
-            allEntries = [allEntries; entry]; %#ok<AGROW>
+                warning("Unknown SignalType: %s", signalType);
         end
     end
 
-    % Convert to final table
-    signalTable = struct2table(allEntries);
+    % Use sampling rate and label from available metadata
+    if ~isempty(metaCurrent)
+        Fs = metaCurrent.Fs;
+        label = metaCurrent.Fault;
+    elseif ~isempty(metaVibro)
+        Fs = metaVibro.Fs;
+        label = metaVibro.Fault;
+    else
+        continue;
+    end
+
+    % Window signals
+    currentWindows = {};
+    vibroWindows = {};
+    timeIntervals = [];
+
+    if ~isempty(currentData)
+        [currentWindows, timeIntervals] = preprocess.windows(currentData, Fs, windowDuration, overlapPercent);
+    end
+
+    if ~isempty(vibroData)
+        [vibroWindows, timeIntervalsVibro] = preprocess.windows(vibroData, Fs, windowDuration, overlapPercent);
+        if isempty(timeIntervals)
+            timeIntervals = timeIntervalsVibro;
+        end
+    end
+
+    % Create entries for each window
+    numWindows = size(timeIntervals, 1);
+    for w = 1:numWindows
+        entry = struct();
+
+        if ~isempty(currentWindows)
+            entry.currents = currentWindows(w);
+        end
+
+        if ~isempty(vibroWindows)
+            entry.vibro = vibroWindows(w);
+        end
+
+        entry.label = string(label);
+        entry.timeInterval = timeIntervals(w, :);
+
+        entry.metaCurrent = [];
+        if ~isempty(metaCurrent)
+            entry.metaCurrent = metaCurrent;
+        end
+
+        entry.metaVibro = [];
+        if ~isempty(metaVibro)
+            entry.metaVibro = metaVibro;
+        end
+
+        allEntries = [allEntries; entry]; %#ok<AGROW>
+    end
+end
+
+% Convert to table
+signalTable = struct2table(allEntries);
 end

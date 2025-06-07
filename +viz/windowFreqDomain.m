@@ -30,6 +30,10 @@ function fig = windowFreqDomain(row, opts)
         opts.visible = false;
     end
 
+    if ~isfield(opts, 'titleStr') || isempty(opts.titleStr)
+        opts.titleStr = ['Frequency Domain - ', opts.signalType];
+    end
+
     % ====== Extract signal ======
     signalType = opts.signalType;
 
@@ -51,7 +55,7 @@ function fig = windowFreqDomain(row, opts)
         FsVec = zeros(height(row),1);
         for i = 1:height(row)
             sigCells{i} = row.(opts.signalType){i};
-            FsVec(i) = row.meta(i, :).Fs;
+            FsVec(i) = row.metaVibro(i, :).Fs;
         end
         if any(FsVec ~= FsVec(1))
             error('Sampling rates differ between rows!');
@@ -72,8 +76,9 @@ function fig = windowFreqDomain(row, opts)
     else
         % Extract signal and sampling rate, single row
         sig = row.(opts.signalType){1};  % [N x C]
-        Fs = row.meta.Fs;
+        Fs = row.metaCurrent.Fs;
         [N, C] = size(sig);
+        C = 2;
     end
 
     % Default xlim if not provided
@@ -85,7 +90,7 @@ function fig = windowFreqDomain(row, opts)
     fig = figure('Visible', ternary(opts.visible, 'on', 'off'));
 
     t = tiledlayout(C, 1, 'Padding', 'compact', 'TileSpacing', 'compact');
-    title(t, ['Frequency Domain - ', signalType], 'FontSize', 14, 'FontWeight', 'bold');
+    title(t, opts.titleStr, 'FontWeight', 'bold', 'FontSize', 14);
 
     N = size(sig, 1);         % Number of samples
     f = Fs * (0:(N/2)) / N;   % Frequency vector (one-sided)
@@ -105,14 +110,14 @@ function fig = windowFreqDomain(row, opts)
         plot(f, P1, 'LineWidth', 1.2);
         grid on;
 
-        xlabel('Frequency (Hz)', 'FontWeight', 'bold');
+        xlabel('Частота, Гц', 'FontWeight', 'bold');
         if opts.logScale
-            ylabel("Magnitude (dB)", 'FontWeight', 'bold');
+            ylabel("Уровень мощности, дБ", 'FontWeight', 'bold');
         else
             ylabel("Magnitude", 'FontWeight', 'bold');
         end
         
-        title(['Channel ', num2str(ch)], 'FontWeight', 'bold');
+        title(['Канал ', num2str(ch)], 'FontWeight', 'bold');
         xlim(opts.xlim);
     end
 end
