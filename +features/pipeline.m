@@ -65,5 +65,7 @@ function [X, Y, featureTbl, featureNames] = pipeline(files, options)
     end
     % Remove excluded features
     [X, featureNames] = features.exclude(X, featureNames, options.exclude);
+    [X, rowMask, featureNames] = features.removeOutOfScopeRows(X, featureNames, featureNames);
+    featureTbl = featureTbl(rowMask, :);
     
 end

@@ -1,132 +1,115 @@
 function fig = windowFreqDomain(row, opts)
-    % windowFreqDomain - Plot frequency domain of a signal with custom options
-    %
-    % Inputs:
-    %   row     - Table row with signal data and meta
-    %   options - Struct with fields:
-    %       .signalType ('currents' [default] or 'vibro')
-    %       .logScale   (true [default] or false)
-    %       .xlim       ([min max], default = [0 Fs/2])
-    %       .visible    (false [default] or true)
-    %
-    % Output:
-    %   fig - Handle to the created figure
+% windowFreqDomain - Plot frequency domain of a signal with custom options.
+%
+% Inputs:
+%   row  - Table row(s) with signal fields and meta info
+%   opts - Struct with fields:
+%       .signalType  - 'currents' [default] or 'vibro'
+%       .logScale    - Apply log scale (true [default] or false)
+%       .xlim        - frequency axis limits (e.g., [0 500])
+%       .visible     - Show figure (true or false [default])
+%       .titleStr    - Custom plot title
+%       .xlabelStr   - Label for X axis
+%       .ylabelStr   - Label for Y axis
+%
+% Output:
+%   fig - Handle to the created figure
 
-    % ====== Set default options ======
-    if nargin < 2
-        opts = struct();
-    end
-
-    if ~isfield(opts, 'signalType')
-        opts.signalType = 'currents';
-        disp("No signal type provided. Using 'currents' by default.");
-    end
-
-    if ~isfield(opts, 'logScale')
-        opts.logScale = true;
-    end
-
-    if ~isfield(opts, 'visible')
-        opts.visible = false;
-    end
-
-    if ~isfield(opts, 'titleStr') || isempty(opts.titleStr)
-        opts.titleStr = ['Frequency Domain - ', opts.signalType];
-    end
-
-    % ====== Extract signal ======
-    signalType = opts.signalType;
-
-    % Validate signalType
-    validTypes = {'currents', 'vibro'};
-    if ~ismember(signalType, validTypes)
-        error("Invalid signal type. Must be 'currents' or 'vibro'.");
-    end
-
-    % Check availability in table
-    if ~ismember(signalType, row.Properties.VariableNames)
-        error('Signal type "%s" not found in the table.', signalType);
-    end
-
-    % === Handle multiple rows ===
-    if height(row) > 1  % <<< multiple rows
-        % Preallocate cell arrays to collect signals and Fs
-        sigCells = cell(height(row),1);
-        FsVec = zeros(height(row),1);
-        for i = 1:height(row)
-            sigCells{i} = row.(opts.signalType){i};
-            FsVec(i) = row.metaVibro(i, :).Fs;
-        end
-        if any(FsVec ~= FsVec(1))
-            error('Sampling rates differ between rows!');
-        end
-        Fs = FsVec(1);
-        % Check channel consistency
-        nChans = cellfun(@(s) size(s,2), sigCells);
-        if any(nChans ~= nChans(1))
-            error('Number of channels differ between rows!');
-        end
-        C = nChans(1);
-        % Concatenate signals along time (assume all [N x C])
-        sig = cat(1, sigCells{:});
-        N = size(sig,1);
-        if ~isfield(opts, 'titleStr') || isempty(opts.titleStr)
-            opts.titleStr = sprintf('Time Domain - %s (all rows, N=%d)', opts.signalType, height(row));
-        end
-    else
-        % Extract signal and sampling rate, single row
-        sig = row.(opts.signalType){1};  % [N x C]
-        Fs = row.metaCurrent.Fs;
-        [N, C] = size(sig);
-        C = 2;
-    end
-
-    % Default xlim if not provided
-    if ~isfield(opts, 'xlim') || isempty(opts.xlim)
-        opts.xlim = [0, Fs/2];
-    end
-
-    % ====== Create Figure ======
-    fig = figure('Visible', ternary(opts.visible, 'on', 'off'));
-
-    t = tiledlayout(C, 1, 'Padding', 'compact', 'TileSpacing', 'compact');
-    title(t, opts.titleStr, 'FontWeight', 'bold', 'FontSize', 14);
-
-    N = size(sig, 1);         % Number of samples
-    f = Fs * (0:(N/2)) / N;   % Frequency vector (one-sided)
-
-    % ====== Plot Each Channel ======
-    for ch = 1:C
-        Y = fft(sig(:, ch));
-        P2 = abs(Y / N);               % Two-sided spectrum
-        P1 = P2(1:N/2+1);              % One-sided spectrum
-        P1(2:end-1) = 2 * P1(2:end-1); % Double energy (except DC/nyquist)
-
-        if opts.logScale
-            P1 = 20 * log10(P1 + eps); % Avoid log(0)
-        end
-
-        nexttile;
-        plot(f, P1, 'LineWidth', 1.2);
-        grid on;
-
-        xlabel('Частота, Гц', 'FontWeight', 'bold');
-        if opts.logScale
-            ylabel("Уровень мощности, дБ", 'FontWeight', 'bold');
-        else
-            ylabel("Magnitude", 'FontWeight', 'bold');
-        end
-        
-        title(['Канал ', num2str(ch)], 'FontWeight', 'bold');
-        xlim(opts.xlim);
-    end
+% ===== Set Default Options =====
+if nargin < 2
+    opts = struct();
 end
 
-% Helper ternary function (MATLAB doesn't have ? operator)
+opts = setDefault(opts, 'signalType', 'currents');
+opts = setDefault(opts, 'logScale', true);
+opts = setDefault(opts, 'visible', false);
+opts = setDefault(opts, 'titleStr', ['Frequency Domain - ', opts.signalType]);
+
+% Determine dynamic labels
+opts = setDefault(opts, 'xlabelStr', 'Частота, Гц');
+defaultYLabel = ternary(opts.logScale, ...
+                        ternary(strcmp(opts.signalType, 'vibro'), 'Уровень вибро, дБ', 'Уровень тока, дБ'), ...
+                        'Magnitude');
+opts = setDefault(opts, 'ylabelStr', defaultYLabel);
+
+% ===== Validate Signal Type =====
+validTypes = {'currents', 'vibro'};
+if ~ismember(opts.signalType, validTypes)
+    error("Invalid signal type. Must be 'currents' or 'vibro'.");
+end
+
+if ~ismember(opts.signalType, row.Properties.VariableNames)
+    error("Signal '%s' not found in the table.", opts.signalType);
+end
+
+metaField = ternary(strcmp(opts.signalType, 'vibro'), 'metaVibro', 'metaCurrent');
+
+% ===== Handle Multiple Rows =====
+numRows = height(row);
+sigCells = cell(numRows,1);
+FsVec = zeros(numRows,1);
+
+for i = 1:numRows
+    sigCells{i} = row.(opts.signalType){i};
+    FsVec(i) = row.(metaField).Fs(i);
+end
+
+if any(diff(FsVec) ~= 0)
+    error('Sampling frequencies differ between rows. Cannot continue.');
+end
+
+Fs = FsVec(1);
+sig = cat(1, sigCells{:});
+[N, C] = size(sig);
+f = Fs * (0:(N/2)) / N;
+
+% Default freq axis limit if not set
+opts = setDefault(opts, 'xlim', [0 Fs/2]);
+
+% ===== Create Figure =====
+if isfield(opts, 'parent') && ~isempty(opts.parent)
+    t = tiledlayout(opts.parent, C,1, ...
+        'TileSpacing', 'compact', ...
+        'Padding', 'compact');
+    fig = ancestor(t, 'figure'); % Just for compatibility
+else
+    fig = figure('Visible', ternary(opts.visible, 'on', 'off'));
+    t = tiledlayout(C, 1, 'Padding', 'compact', 'TileSpacing', 'compact');
+end
+title(t, opts.titleStr, 'FontWeight', 'bold', 'FontSize', 14, 'Interpreter', 'none');
+
+% ===== Plot Each Channel =====
+for ch = 1:C
+    Y = fft(sig(:, ch));
+    P2 = abs(Y / N);                     % Two-sided spectrum
+    P1 = P2(1:N/2+1);
+    P1(2:end-1) = 2 * P1(2:end-1);
+
+    if opts.logScale
+        P1 = 20 * log10(P1 + eps);       % Avoid log(0)
+    end
+
+    ax = nexttile(t);
+    plot(ax, f, P1, 'LineWidth', 1.2);
+    xlabel(ax, opts.xlabelStr, 'FontWeight', 'bold');
+    ylabel(ax, opts.ylabelStr, 'FontWeight', 'bold');
+    title(ax, ['Канал ', num2str(ch)], 'FontWeight', 'bold');
+    xlim(ax, opts.xlim);
+    grid(ax, 'on');
+end
+end
+
+% === Helper Functions ===
 function out = ternary(cond, valTrue, valFalse)
     if cond
         out = valTrue;
     else
         out = valFalse;
+    end
+end
+
+function opts = setDefault(opts, fieldName, defaultValue)
+    if ~isfield(opts, fieldName) || isempty(opts.(fieldName))
+        opts.(fieldName) = defaultValue;
     end
 end
