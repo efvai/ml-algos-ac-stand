@@ -119,11 +119,13 @@ function metadataSubset = selectPreset(dataTable, datasetName)
 
         case 'dataset24'
             % Combined 20Hz–30Hz (under load, Vibration)
+            h10 = metadata.filter(dataTable, classLabels, ...
+                "under load", "10hz", "Vibration");
             d21 = metadata.selectPreset(dataTable, 'dataset21');
             d22 = metadata.selectPreset(dataTable, 'dataset22');
-            %d23 = metadata.selectPreset(dataTable, 'dataset23');
+            d23 = metadata.selectPreset(dataTable, 'dataset23');
             
-            metadataSubset = [d21; d22]; %d23];% d14];
+            metadataSubset = [h10; d21; d22; d23]; %d23];% d14];
         case 'dataset25'
             d15 = metadata.selectPreset(dataTable, 'dataset15');
             d24 = metadata.selectPreset(dataTable, 'dataset24');

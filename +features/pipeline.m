@@ -1,4 +1,4 @@
-function [X, Y, featureTbl, featureNames] = pipeline(files, options)
+function [X, Y, featureTbl, featureNames, excludedWindows] = pipeline(files, options)
 %FEATURES.PIPELINE Full feature extraction pipeline from files
 %
 %   [X, Y, featureTbl, featureNames] = features.pipeline(files, options)
@@ -65,7 +65,8 @@ function [X, Y, featureTbl, featureNames] = pipeline(files, options)
     end
     % Remove excluded features
     [X, featureNames] = features.exclude(X, featureNames, options.exclude);
-    [X, rowMask, featureNames] = features.removeOutOfScopeRows(X, featureNames, featureNames);
+    [X, rowMask, featureNames] = features.removeOutOfScopeRows(X, featureNames, featureNames, featureTbl);
+    excludedWindows = featureTbl(~rowMask, :);
     featureTbl = featureTbl(rowMask, :);
-    
+    Y = Y(rowMask, :);
 end

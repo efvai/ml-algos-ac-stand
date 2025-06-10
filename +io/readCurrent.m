@@ -18,5 +18,5 @@ function data = readCurrent(filePath)
     % Subtract fixed offset from all channels
     data = rawData - ADC_OFFSET;
 
-    data = filloutliers(data,"linear","percentiles",[10 90]);
+    %data = filloutliers(data,"linear","percentiles",[10 90]);
 end
