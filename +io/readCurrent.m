@@ -1,5 +1,5 @@
 function data = readCurrent(filePath)
-%READCURRENTSIGNAL Read binary ADC current signal and remove fixed offset.
+%READCURRENTSIGNAL Read binary ADC current signal
 %
 %   data = readCurrentSignal(filePath, numChannels)
 %
@@ -9,14 +9,29 @@ function data = readCurrent(filePath)
 %   Outputs:
 %       - data: [samples x channels] with fixed ADC offset removed
 
-    % === Constant ADC offset (e.g., 2.5V for 0–5V unipolar ADC) ===
     ADC_OFFSET = 2.5;
 
-    % Read raw data using your base function
+    % Read raw data using base function
     rawData = io.readRaw(filePath, 2);
+    
+    % Removing offset
+    %data = rawData - ADC_OFFSET;
+    data = rawData - mean(rawData);
 
-    % Subtract fixed offset from all channels
-    data = rawData - ADC_OFFSET;
+    % 2. Подавление выбросов
+    signal_medfilt = medfilt1(data, 21);
+    residual = data - signal_medfilt;
+    mad_val = median(abs(residual - median(residual)));
+    threshold = 5 * mad_val;
+    is_outlier = abs(residual) > threshold;
+    
+    % Интерполяция выбросов
+    outlier_pos = find(is_outlier);
+    valid_pos = find(~is_outlier);
+    signal_clean = data;
+    if ~isempty(outlier_pos)
+        signal_clean(outlier_pos) = interp1(valid_pos, data(valid_pos), outlier_pos, 'pchip');
+    end
 
-    %data = filloutliers(data,"linear","percentiles",[10 90]);
+    data = signal_clean;
 end

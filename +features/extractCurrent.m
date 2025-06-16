@@ -51,6 +51,8 @@ function featuresVec = extractCurrent(data, Fs)
     vectorRMS = sqrt(phaseA.^2 + phaseB.^2);
     avgVectorRMS = mean(vectorRMS);
 
+    
+
     % --- Combine All ---
     featuresVec = [reorderedfAfB, corrAB, avgVectorRMS];
 end

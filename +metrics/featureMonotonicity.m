@@ -43,7 +43,7 @@ function score = featureMonotonicity(featureTbl, featureName, labelOrder)
         n2 = numel(class2);
         pooledStd = sqrt(((n1-1)*s1^2 + (n2-1)*s2^2) / (n1 + n2 - 2));
         if pooledStd == 0
-            score = NaN; % or 0, depending on your preference
+            score = NaN;
         else
             score = abs(mu1 - mu2) / pooledStd;
         end

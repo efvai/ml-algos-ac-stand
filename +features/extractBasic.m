@@ -42,6 +42,11 @@ function features = extractBasic(signal, Fs)
     crestFactor = max(abs(signal)) / max(rmsVal, eps);
 
     % --- Frequency-Domain Features ---
+
+    % Windowing
+    signal = signal .* hann(length(signal));
+
+    % FFT
     Y = fft(signal);
     N = length(signal);
     P2 = abs(Y/N);
