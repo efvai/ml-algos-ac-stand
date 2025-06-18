@@ -1,4 +1,4 @@
-function features = extractBasic(signal, Fs)
+function [features, fVec, FFTVec] = extractBasic(signal, Fs)
 %FEATURES.EXTRACTBASIC Extracts time and frequency domain features from a 1D signal.
 %
 %   FEATURES = extractBasic(SIGNAL, FS) returns a 1xN vector of features 
@@ -53,6 +53,7 @@ function features = extractBasic(signal, Fs)
     P1 = P2(1:floor(N/2)+1);
     P1(2:end-1) = 2*P1(2:end-1); 
     fVec = Fs * (0:(N/2)) / N;
+    FFTVec = P1;
 
     % Dominant frequency
     [~, idx] = max(P1);

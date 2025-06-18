@@ -15,9 +15,18 @@ function names = registry(signalType)
     end
 
     %% === Define Feature Name Templates ===
-
     timeFeatures = {'Mean','Std','RMS','Skew','Kurt','PTP','Crest'};
     freqFeatures = {'DominantFreq','SpecEnergy','Centroid','Entropy'};
+
+    % New group: Advanced spectral + envelope features
+    advancedSpectralFeatures = {
+        'HF_Energy', ...
+        'THD', ...
+        'Sideband_1_Amp', ...
+        'Sideband_2_Amp', ...
+        'Envelope_Mean', ...
+        'Envelope_Std'
+    };
 
     %% === Handle struct input (preferred new style) ===
     if isstruct(signalType)
@@ -31,6 +40,7 @@ function names = registry(signalType)
             'freqDomain', false, ...
             'crossPhase', false, ...
             'park', false, ...
+            'advancedSpectral', false, ...
             'vibroChannels', [] ...
         );
 
@@ -38,12 +48,14 @@ function names = registry(signalType)
         flags = defaultFlags;
         userFields = fieldnames(opt);
         for i = 1:numel(userFields)
-            flags.(userFields{i}) = opt.(userFields{i});
+            if isfield(flags, userFields{i})
+                flags.(userFields{i}) = opt.(userFields{i});
+            end
         end
 
         names = {};
 
-        %% === Currents: Phase A/B Time/Freq ===
+        %% === Currents: Time-Domain & Frequency-Domain ===
         if flags.timeDomain
             for i = 1:numel(timeFeatures)
                 if flags.phaseA
@@ -66,6 +78,20 @@ function names = registry(signalType)
             end
         end
 
+        %% === Advanced Spectral Features (new section) ===
+        if flags.advancedSpectral
+            for i = 1:numel(advancedSpectralFeatures)
+                feat = advancedSpectralFeatures{i};
+                if flags.phaseA
+                    names{end+1} = [feat, '_A'];
+                end
+                if flags.phaseB
+                    names{end+1} = [feat, '_B'];
+                end
+            end
+        end
+
+        %% === Cross-phase features ===
         if flags.crossPhase
             names{end+1} = 'Corr_AB';
             names{end+1} = 'RMS_VectorMag';
@@ -101,6 +127,7 @@ function names = registry(signalType)
                 'phaseB', true, ...
                 'timeDomain', true, ...
                 'freqDomain', true, ...
+                'advancedSpectral', true, ...
                 'crossPhase', true, ...
                 'park', true ...
             ));
@@ -112,6 +139,7 @@ function names = registry(signalType)
                 'phaseB', true, ...
                 'timeDomain', true, ...
                 'freqDomain', true, ...
+                'advancedSpectral', true, ...
                 'crossPhase', true, ...
                 'park', true, ...
                 'vibroChannels', 1:4 ...

@@ -61,7 +61,6 @@ function [X, Y, featureTbl, featureNames] = fromSignalTable(signalTable)
     featureTbl = array2table(X, 'VariableNames', featureNames);
     featureTbl.label = categorical(labels);
 
-    % Optional: attach original metadata
     if ismember('metaCurrent', signalTable.Properties.VariableNames)
         featureTbl.metaCurrent = signalTable.metaCurrent;
     end
